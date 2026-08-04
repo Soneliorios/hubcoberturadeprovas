@@ -38,6 +38,11 @@ export async function marcarCadastrado(leadId: string): Promise<void> {
   });
 }
 
+/** Busca um lead pelo e-mail (usado no "entrar" de quem já se cadastrou). */
+export async function buscarLeadPorEmail(email: string): Promise<Lead | null> {
+  return prisma.lead.findUnique({ where: { email } });
+}
+
 /** O visitante desta requisição já se cadastrou? (gate suave, por cookie) */
 export async function estaCadastrado(): Promise<boolean> {
   const store = await cookies();

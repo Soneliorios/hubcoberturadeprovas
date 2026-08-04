@@ -30,7 +30,11 @@ export default async function SecaoPage({
     <>
       <Header />
       <main className="flex-1">
-        {sp.cadastro === "ok" && <BannerCadastroOk />}
+        {(sp.cadastro === "ok" || sp.cadastro === "login") && (
+          <BannerCadastroOk
+            variante={sp.cadastro === "login" ? "login" : "cadastro"}
+          />
+        )}
         <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
           <Link
             href="/conteudos"
@@ -95,6 +99,12 @@ export default async function SecaoPage({
                     className="w-full rounded-lg bg-teal px-4 py-2.5 text-sm font-bold text-black transition-colors hover:bg-teal-strong"
                   >
                     Fazer cadastro grátis
+                  </Link>
+                  <Link
+                    href={`/cadastro?modo=entrar&voltar=/conteudos/${secao.id}`}
+                    className="text-xs font-semibold text-muted hover:text-foreground"
+                  >
+                    Já tem cadastro? <span className="text-teal">Entrar</span>
                   </Link>
                 </div>
               </div>

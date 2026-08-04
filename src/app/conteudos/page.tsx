@@ -24,7 +24,11 @@ export default async function ConteudosPage({
     <>
       <Header />
       <main className="flex-1">
-        {sp.cadastro === "ok" && <BannerCadastroOk />}
+        {(sp.cadastro === "ok" || sp.cadastro === "login") && (
+          <BannerCadastroOk
+            variante={sp.cadastro === "login" ? "login" : "cadastro"}
+          />
+        )}
         <HubContent secoes={secoes} />
       </main>
     </>

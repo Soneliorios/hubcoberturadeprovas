@@ -2,8 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { cadastroSchema } from "@/lib/cadastro-schema";
-import { salvarLead, marcarCadastrado } from "@/server/leads";
+import {
+  salvarLead,
+  marcarCadastrado,
+  buscarLeadPorEmail,
+} from "@/server/leads";
 
 /** Valores ecoados de volta ao formulário quando a validação falha
  *  (o React 19 reseta forms após a action — sem isso o visitante perderia tudo). */
@@ -60,4 +65,51 @@ export async function cadastrarAction(
   revalidatePath("/conteudos");
   const destino = destinoSeguro(String(formData.get("voltar") ?? "/conteudos"));
   redirect(`${destino}?cadastro=ok`);
+}
+
+/* ===== Entrar (quem já se cadastrou em outro navegador/dispositivo) ===== */
+
+export interface EntrarState {
+  ok: boolean;
+  erro?: string;
+  /** Eco do e-mail digitado (React 19 reseta o form após a action). */
+  email?: string;
+}
+
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(254)
+  .email("Informe um e-mail válido.");
+
+export async function entrarAction(
+  _prev: EntrarState,
+  formData: FormData
+): Promise<EntrarState> {
+  // Honeypot anti-bot.
+  if (String(formData.get("site") ?? "") !== "") {
+    redirect("/conteudos");
+  }
+
+  const emailBruto = String(formData.get("email") ?? "");
+  const parsed = emailSchema.safeParse(emailBruto);
+  if (!parsed.success) {
+    return { ok: false, erro: "Informe um e-mail válido.", email: emailBruto };
+  }
+
+  const lead = await buscarLeadPorEmail(parsed.data);
+  if (!lead) {
+    return {
+      ok: false,
+      erro:
+        "Não encontramos esse e-mail. Confira se digitou certo ou faça seu cadastro.",
+      email: emailBruto,
+    };
+  }
+
+  await marcarCadastrado(lead.id);
+  revalidatePath("/conteudos");
+  const destino = destinoSeguro(String(formData.get("voltar") ?? "/conteudos"));
+  redirect(`${destino}?cadastro=login`);
 }

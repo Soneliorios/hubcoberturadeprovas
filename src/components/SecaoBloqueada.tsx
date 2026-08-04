@@ -88,6 +88,12 @@ export default function SecaoBloqueada({
             >
               Fazer cadastro grátis
             </Link>
+            <Link
+              href="/cadastro?modo=entrar"
+              className="text-xs font-semibold text-muted hover:text-foreground"
+            >
+              Já tem cadastro? <span className="text-teal">Entrar</span>
+            </Link>
           </div>
         </div>
       </div>

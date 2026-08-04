@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import CadastroForm from "@/components/CadastroForm";
+import AcessoCard from "@/components/AcessoCard";
 import { estaCadastrado } from "@/server/leads";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,7 @@ export default async function CadastroPage({
 }: PageProps<"/cadastro">) {
   const [cadastrado, sp] = await Promise.all([estaCadastrado(), searchParams]);
   const voltar = typeof sp.voltar === "string" ? sp.voltar : undefined;
+  const modoInicial = sp.modo === "entrar" ? "entrar" : "cadastro";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
@@ -64,7 +65,7 @@ export default async function CadastroPage({
               </Link>
             </div>
           ) : (
-            <CadastroForm voltar={voltar} />
+            <AcessoCard modoInicial={modoInicial} voltar={voltar} />
           )}
         </div>
 
