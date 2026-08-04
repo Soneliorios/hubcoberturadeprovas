@@ -5,6 +5,17 @@ import Link from "next/link";
 import { ESTADOS } from "@/data/estados";
 import type { ContentType, SecaoInfo, UF } from "@/lib/types";
 import type { FormState } from "./actions";
+import Uploader from "./Uploader";
+
+/** Nome amigável a partir da URL pública do Storage. */
+function nomeDaUrl(url: string): string {
+  try {
+    const partes = new URL(url).pathname.split("/");
+    return decodeURIComponent(partes[partes.length - 1] ?? url);
+  } catch {
+    return url;
+  }
+}
 
 export interface ConteudoDefaults {
   titulo?: string;
@@ -34,6 +45,13 @@ export default function ConteudoForm({
 }) {
   const [state, formAction, pending] = useActionState(action, estadoInicial);
   const [tipo, setTipo] = useState<ContentType>(defaults.tipo ?? "youtube");
+  // Upload de arquivo (tipo "arquivo"): URL controlada sobrevive a erros.
+  const [urlArquivo, setUrlArquivo] = useState(
+    defaults.tipo === "arquivo" ? defaults.url ?? "" : ""
+  );
+  const [linkExterno, setLinkExterno] = useState(false);
+  // Capa (thumbnail): também controlada, preenchida por upload.
+  const [thumb, setThumb] = useState(defaults.thumbnail ?? "");
   const erros = state.erros ?? {};
 
   // Após erro de validação o React 19 reseta o form; a action ecoa os valores
@@ -137,25 +155,63 @@ export default function ConteudoForm({
         </div>
       </Campo>
 
-      {/* URL */}
-      <Campo
-        label={tipo === "youtube" ? "Link do vídeo (YouTube)" : "Link do arquivo"}
-        erro={erros.url}
-        htmlFor="url"
-      >
-        <input
-          id="url"
-          name="url"
-          type="url"
-          defaultValue={d.url}
-          placeholder={
-            tipo === "youtube"
-              ? "https://www.youtube.com/watch?v=..."
-              : "https://.../arquivo.pdf"
-          }
-          className="input"
-        />
-      </Campo>
+      {/* URL / Arquivo */}
+      {tipo === "youtube" ? (
+        <Campo label="Link do vídeo (YouTube)" erro={erros.url} htmlFor="url">
+          <input
+            id="url"
+            name="url"
+            type="url"
+            defaultValue={d.url}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="input"
+          />
+        </Campo>
+      ) : (
+        <Campo label="Arquivo" erro={erros.url} htmlFor="">
+          {linkExterno ? (
+            <input
+              name="url"
+              type="url"
+              value={urlArquivo}
+              onChange={(e) => setUrlArquivo(e.target.value)}
+              placeholder="https://.../arquivo.pdf"
+              className="input"
+            />
+          ) : (
+            <>
+              <input type="hidden" name="url" value={urlArquivo} />
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3">
+                <Uploader
+                  destino="arquivo"
+                  accept=".pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*"
+                  rotulo={urlArquivo ? "Trocar arquivo" : "Enviar arquivo"}
+                  onUpload={(url) => setUrlArquivo(url)}
+                />
+                {urlArquivo ? (
+                  <span className="flex min-w-0 items-center gap-1.5 text-sm text-foreground">
+                    <span aria-hidden>📄</span>
+                    <span className="truncate">{nomeDaUrl(urlArquivo)}</span>
+                  </span>
+                ) : (
+                  <span className="text-sm text-muted">
+                    PDF, ZIP, Office ou imagem — até 50MB.
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => setLinkExterno((v) => !v)}
+            className="mt-1.5 text-xs font-medium text-muted hover:text-foreground"
+          >
+            {linkExterno
+              ? "← Voltar para upload de arquivo"
+              : "Prefere colar um link externo? (Drive, site etc.)"}
+          </button>
+        </Campo>
+      )}
 
       {/* Prova + Duração */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -217,20 +273,44 @@ export default function ConteudoForm({
         </div>
       </Campo>
 
-      {/* Thumbnail */}
+      {/* Capa */}
       <Campo
         label="Imagem de capa (opcional)"
         erro={erros.thumbnail}
-        htmlFor="thumbnail"
+        htmlFor=""
       >
-        <input
-          id="thumbnail"
-          name="thumbnail"
-          type="url"
-          defaultValue={d.thumbnail}
-          placeholder="https://... (vídeos do YouTube geram capa automática)"
-          className="input"
-        />
+        <input type="hidden" name="thumbnail" value={thumb} />
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3">
+          {thumb && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={thumb}
+              alt="Capa atual"
+              className="h-14 w-24 rounded-md border border-border object-cover"
+            />
+          )}
+          <Uploader
+            destino="thumb"
+            accept="image/png,image/jpeg,image/webp"
+            rotulo={thumb ? "Trocar capa" : "Enviar capa"}
+            onUpload={(url) => setThumb(url)}
+          />
+          {thumb ? (
+            <button
+              type="button"
+              onClick={() => setThumb("")}
+              className="text-sm font-medium text-muted hover:text-error"
+            >
+              Remover
+            </button>
+          ) : (
+            <span className="text-sm text-muted">
+              {tipo === "youtube"
+                ? "Opcional — vídeos do YouTube geram capa automática."
+                : "PNG, JPG ou WebP — aparece no card do conteúdo."}
+            </span>
+          )}
+        </div>
       </Campo>
 
       {/* Descrição */}

@@ -70,14 +70,14 @@ export default function ContentCard({
     item.thumbnail ??
     (item.tipo === "youtube" ? getYoutubeThumb(item.url) : null);
   const badge = badgeTipo(item.tipo);
-  const isDownload = item.tipo === "arquivo";
+  const isArquivo = item.tipo === "arquivo";
 
   return (
     <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      {...(isDownload ? { download: "" } : {})}
+      // Arquivo abre a página interna de visualização (preview + download);
+      // vídeo do YouTube abre direto em nova aba.
+      href={isArquivo ? `/conteudos/arquivo/${item.id}` : item.url}
+      {...(isArquivo ? {} : { target: "_blank", rel: "noopener noreferrer" })}
       className="group block w-[248px] shrink-0 rounded-xl border border-border bg-surface overflow-hidden transition-all hover:border-teal/60 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal"
     >
       {/* Capa */}

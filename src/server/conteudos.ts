@@ -140,6 +140,41 @@ export async function getNotificacoes(desbloqueado: boolean) {
   }));
 }
 
+export interface ConteudoVisualizacao {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  url: string;
+  prova?: string;
+  secaoId: string;
+  secaoTitulo: string;
+  /** true = o visitante não tem acesso (mostra CTA em vez do preview) */
+  restrito: boolean;
+}
+
+/** Conteúdo para a página de visualização/download, respeitando o gate. */
+export async function getConteudoParaVisualizacao(
+  id: string,
+  desbloqueado: boolean
+): Promise<ConteudoVisualizacao | null> {
+  const c = await prisma.conteudo.findUnique({
+    where: { id },
+    include: { secao: true },
+  });
+  if (!c) return null;
+  const restrito = !desbloqueado && conteudoRestrito(c, c.secao.acesso);
+  return {
+    id: c.id,
+    titulo: c.titulo,
+    descricao: c.descricao ?? undefined,
+    url: restrito ? "" : c.url,
+    prova: c.prova ?? undefined,
+    secaoId: c.secaoId,
+    secaoTitulo: c.secao.titulo,
+    restrito,
+  };
+}
+
 /** Lista bruta para a tabela do admin (com a seção de cada conteúdo). */
 export async function listarConteudos() {
   return prisma.conteudo.findMany({
