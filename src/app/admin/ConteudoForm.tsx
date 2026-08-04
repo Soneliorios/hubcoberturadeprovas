@@ -2,15 +2,14 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { BLOCOS_INFO } from "@/data/blocos";
 import { ESTADOS } from "@/data/estados";
-import type { ContentType, UF } from "@/lib/types";
+import type { ContentType, SecaoInfo, UF } from "@/lib/types";
 import type { FormState } from "./actions";
 
 export interface ConteudoDefaults {
   titulo?: string;
   descricao?: string;
-  blocoId?: string;
+  secaoId?: string;
   tipo?: ContentType;
   url?: string;
   prova?: string;
@@ -23,16 +22,35 @@ const estadoInicial: FormState = { ok: false };
 
 export default function ConteudoForm({
   action,
+  secoes,
   defaults = {},
   submitLabel,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
+  secoes: SecaoInfo[];
   defaults?: ConteudoDefaults;
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, estadoInicial);
   const [tipo, setTipo] = useState<ContentType>(defaults.tipo ?? "youtube");
   const erros = state.erros ?? {};
+
+  // Após erro de validação o React 19 reseta o form; a action ecoa os valores
+  // submetidos em state.valores — usamos como defaults para nada se perder.
+  const v = state.valores;
+  const d: ConteudoDefaults = v
+    ? {
+        titulo: v.titulo,
+        descricao: v.descricao,
+        secaoId: v.secaoId,
+        tipo: (v.tipo === "arquivo" ? "arquivo" : "youtube") as ContentType,
+        url: v.url,
+        prova: v.prova,
+        estados: v.estados as UF[],
+        thumbnail: v.thumbnail,
+        duracaoMin: v.duracaoMin ? Number(v.duracaoMin) : undefined,
+      }
+    : defaults;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -42,30 +60,31 @@ export default function ConteudoForm({
           id="titulo"
           name="titulo"
           type="text"
-          defaultValue={defaults.titulo}
+          defaultValue={d.titulo}
           placeholder="Ex.: Ultra Revisão R1 — Clínica Médica"
           className="input"
         />
       </Campo>
 
-      {/* Bloco */}
-      <Campo label="Bloco / categoria" erro={erros.blocoId} htmlFor="blocoId">
+      {/* Seção */}
+      <Campo label="Seção / categoria" erro={erros.secaoId} htmlFor="secaoId">
         <select
-          id="blocoId"
-          name="blocoId"
-          defaultValue={defaults.blocoId ?? ""}
+          id="secaoId"
+          name="secaoId"
+          defaultValue={d.secaoId ?? ""}
           className="input"
           onChange={(e) => {
-            const b = BLOCOS_INFO.find((x) => x.id === e.target.value);
-            if (b) setTipo(b.tipoPadrao);
+            const s = secoes.find((x) => x.id === e.target.value);
+            if (s) setTipo(s.tipoPadrao);
           }}
         >
           <option value="" disabled>
-            Selecione um bloco
+            Selecione uma seção
           </option>
-          {BLOCOS_INFO.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.titulo}
+          {secoes.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.icone ? `${s.icone} ` : ""}{s.titulo}
+              {s.acesso === "cadastro" ? " (🔒 cadastrados)" : ""}
             </option>
           ))}
         </select>
@@ -107,7 +126,7 @@ export default function ConteudoForm({
           id="url"
           name="url"
           type="url"
-          defaultValue={defaults.url}
+          defaultValue={d.url}
           placeholder={
             tipo === "youtube"
               ? "https://www.youtube.com/watch?v=..."
@@ -124,7 +143,7 @@ export default function ConteudoForm({
             id="prova"
             name="prova"
             type="text"
-            defaultValue={defaults.prova}
+            defaultValue={d.prova}
             placeholder="Ex.: USP-SP, ENARE"
             className="input"
           />
@@ -139,7 +158,7 @@ export default function ConteudoForm({
             name="duracaoMin"
             type="number"
             min={1}
-            defaultValue={defaults.duracaoMin}
+            defaultValue={d.duracaoMin}
             placeholder="Ex.: 90"
             className="input"
           />
@@ -154,7 +173,7 @@ export default function ConteudoForm({
       >
         <div className="no-scrollbar flex max-h-44 flex-wrap gap-2 overflow-y-auto rounded-lg border border-border bg-surface p-3">
           {ESTADOS.map((e) => {
-            const marcado = defaults.estados?.includes(e.uf) ?? false;
+            const marcado = d.estados?.includes(e.uf) ?? false;
             return (
               <label
                 key={e.uf}
@@ -187,7 +206,7 @@ export default function ConteudoForm({
           id="thumbnail"
           name="thumbnail"
           type="url"
-          defaultValue={defaults.thumbnail}
+          defaultValue={d.thumbnail}
           placeholder="https://... (vídeos do YouTube geram capa automática)"
           className="input"
         />
@@ -199,7 +218,7 @@ export default function ConteudoForm({
           id="descricao"
           name="descricao"
           rows={3}
-          defaultValue={defaults.descricao}
+          defaultValue={d.descricao}
           placeholder="Breve descrição do conteúdo."
           className="input resize-none"
         />

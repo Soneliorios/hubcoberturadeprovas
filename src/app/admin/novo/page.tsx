@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { listarSecoes } from "@/server/secoes";
+import { toSecaoInfo } from "@/server/conteudos";
 import AdminHeader from "../AdminHeader";
 import ConteudoForm from "../ConteudoForm";
 import { criarConteudoAction } from "../actions";
 
 export const metadata = { title: "Admin · Novo conteúdo" };
+export const dynamic = "force-dynamic";
 
 export default async function NovoConteudoPage() {
-  const session = await auth();
+  const [session, secoes] = await Promise.all([auth(), listarSecoes()]);
 
   return (
     <>
@@ -23,7 +26,11 @@ export default async function NovoConteudoPage() {
           Voltar
         </Link>
         <h1 className="mb-6 text-2xl font-bold">Novo conteúdo</h1>
-        <ConteudoForm action={criarConteudoAction} submitLabel="Criar conteúdo" />
+        <ConteudoForm
+          action={criarConteudoAction}
+          secoes={secoes.map(toSecaoInfo)}
+          submitLabel="Criar conteúdo"
+        />
       </main>
     </>
   );

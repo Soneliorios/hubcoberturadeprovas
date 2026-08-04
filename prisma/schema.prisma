@@ -26,14 +26,35 @@ model User {
   criadoEm DateTime @default(now())
 }
 
+/// Uma seção/categoria do hub (gerenciada pelo admin)
+model Secao {
+  id           String   @id @default(cuid())
+  titulo       String
+  /// Emoji opcional exibido ao lado do título
+  icone        String?
+  /// "R1" (Acesso Direto) ou "R+" (Especialidade)
+  nivel        String
+  /// Tipo predominante (pré-seleciona o formulário de conteúdo)
+  tipoPadrao   String   @default("youtube")
+  /// "aberto" (público) ou "cadastro" (exige cadastro — exibida com blur + CTA)
+  acesso       String   @default("aberto")
+  /// Posição de exibição na home (menor = primeiro)
+  ordem        Int      @default(0)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  conteudos Conteudo[]
+}
+
 /// Um conteúdo do hub (vídeo do YouTube ou arquivo para download)
 model Conteudo {
   id          String   @id @default(cuid())
   titulo      String
   descricao   String?
-  /// id de um dos 6 blocos fixos (ver src/data/blocos.ts)
-  blocoId     String
-  /// "R1" (Acesso Direto) ou "R+" (Especialidade)
+  /// Seção à qual o conteúdo pertence (coluna legada "blocoId")
+  secaoId     String   @map("blocoId")
+  secao       Secao    @relation(fields: [secaoId], references: [id])
+  /// "R1" ou "R+" — derivado da seção no momento da gravação
   nivel       String
   /// "youtube" ou "arquivo"
   tipo        String
@@ -47,6 +68,18 @@ model Conteudo {
   criadoEm    DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  @@index([blocoId])
+  @@index([secaoId])
   @@index([nivel])
+}
+
+/// Lead capturado pela página de cadastro (visitante que destravou as seções)
+model Lead {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  telefone  String
+  /// UFs das provas que vai prestar, em JSON: ["SP","RJ"]
+  provas    String   @default("[]")
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
 }

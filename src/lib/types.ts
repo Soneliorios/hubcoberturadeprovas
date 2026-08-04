@@ -44,6 +44,32 @@ export interface ContentBlock {
   itens: ContentItem[];
 }
 
+/** Nível de acesso de uma seção */
+export type Acesso = "aberto" | "cadastro";
+
+/** Metadados de uma seção (gerenciada pelo admin, vive no banco) */
+export interface SecaoInfo {
+  id: string;
+  titulo: string;
+  icone?: string;
+  nivel: Nivel;
+  tipoPadrao: ContentType;
+  acesso: Acesso;
+  ordem: number;
+}
+
+/**
+ * Seção pronta para a home. Quando `bloqueada` (visitante sem cadastro em
+ * seção "cadastro"), `itens` vem VAZIO — nenhum dado real chega ao navegador;
+ * `total` permite desenhar os placeholders borrados.
+ */
+export interface SecaoComConteudos {
+  secao: SecaoInfo;
+  bloqueada: boolean;
+  itens: ContentItem[];
+  total: number;
+}
+
 /** Notificação exibida no sino do header */
 export interface Notificacao {
   id: string;

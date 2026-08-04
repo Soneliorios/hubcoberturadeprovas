@@ -1,20 +1,31 @@
 import Link from "next/link";
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
-import { NOTIFICACOES } from "@/data/conteudos";
 import { auth } from "@/auth";
+import { estaCadastrado } from "@/server/leads";
+import { getNotificacoes } from "@/server/conteudos";
 
 /** Header fixo no topo (escopo): logo + sino de notificações, fundo sólido dark.
- *  Para admins logados, mostra também um atalho de volta ao painel. */
+ *  Visitante sem cadastro vê o CTA "Cadastre-se"; admin logado vê o atalho
+ *  de volta ao painel. Notificações derivam dos conteúdos recentes do banco. */
 export default async function Header() {
-  const session = await auth();
+  const [session, cadastrado] = await Promise.all([auth(), estaCadastrado()]);
   const ehAdmin = !!session?.user;
+  const notificacoes = await getNotificacoes(cadastrado || ehAdmin);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-4 sm:px-6">
         <Logo />
         <div className="flex items-center gap-2 sm:gap-3">
+          {!ehAdmin && !cadastrado && (
+            <Link
+              href="/cadastro"
+              className="rounded-lg bg-teal px-3.5 py-1.5 text-sm font-bold text-black transition-colors hover:bg-teal-strong"
+            >
+              Cadastre-se
+            </Link>
+          )}
           {ehAdmin && (
             <Link
               href="/admin"
@@ -38,7 +49,7 @@ export default async function Header() {
               <span className="sm:hidden">Admin</span>
             </Link>
           )}
-          <NotificationBell notificacoes={NOTIFICACOES} />
+          <NotificationBell notificacoes={notificacoes} />
         </div>
       </div>
     </header>

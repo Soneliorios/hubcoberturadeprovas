@@ -25,6 +25,12 @@ export default function AdminHeader({ nome }: { nome?: string | null }) {
               Conteúdos
             </Link>
             <Link
+              href="/admin/secoes"
+              className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-muted hover:text-foreground"
+            >
+              Seções
+            </Link>
+            <Link
               href="/admin/usuarios"
               className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-muted hover:text-foreground"
             >

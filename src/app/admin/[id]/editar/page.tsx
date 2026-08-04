@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
-import { getConteudo } from "@/server/conteudos";
+import { getConteudo, toSecaoInfo } from "@/server/conteudos";
+import { listarSecoes } from "@/server/secoes";
 import type { ContentType, UF } from "@/lib/types";
 import AdminHeader from "../../AdminHeader";
 import ConteudoForm from "../../ConteudoForm";
@@ -14,7 +15,11 @@ export default async function EditarConteudoPage({
   params,
 }: PageProps<"/admin/[id]/editar">) {
   const { id } = await params;
-  const [session, conteudo] = await Promise.all([auth(), getConteudo(id)]);
+  const [session, conteudo, secoes] = await Promise.all([
+    auth(),
+    getConteudo(id),
+    listarSecoes(),
+  ]);
   if (!conteudo) notFound();
 
   let estados: UF[] = [];
@@ -43,11 +48,12 @@ export default async function EditarConteudoPage({
         <h1 className="mb-6 text-2xl font-bold">Editar conteúdo</h1>
         <ConteudoForm
           action={action}
+          secoes={secoes.map(toSecaoInfo)}
           submitLabel="Salvar alterações"
           defaults={{
             titulo: conteudo.titulo,
             descricao: conteudo.descricao ?? undefined,
-            blocoId: conteudo.blocoId,
+            secaoId: conteudo.secaoId,
             tipo: (conteudo.tipo === "arquivo" ? "arquivo" : "youtube") as ContentType,
             url: conteudo.url,
             prova: conteudo.prova ?? undefined,

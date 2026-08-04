@@ -1,16 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
 import { ESTADOS } from "@/data/estados";
-import type { UF } from "@/lib/types";
+import { cadastrarAction, type CadastroState } from "@/app/cadastro/actions";
 
-interface Erros {
-  nome?: string;
-  email?: string;
-  telefone?: string;
-  provas?: string;
-}
+const estadoInicial: CadastroState = { ok: false };
 
 function formatarTelefone(v: string): string {
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -21,119 +15,119 @@ function formatarTelefone(v: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-export default function CadastroForm() {
-  const router = useRouter();
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
+/**
+ * Formulário público de captação de lead.
+ * `voltar` = caminho interno para onde redirecionar após o cadastro
+ * (ex.: a seção bloqueada de onde o visitante veio).
+ *
+ * Nota React 19: o form é resetado após a action; por isso a action ecoa
+ * `state.valores` nos erros de validação e os usamos como defaultValue.
+ */
+export default function CadastroForm({ voltar }: { voltar?: string }) {
+  const [state, formAction, pending] = useActionState(
+    cadastrarAction,
+    estadoInicial
+  );
   const [telefone, setTelefone] = useState("");
-  const [provas, setProvas] = useState<UF[]>([]);
-  const [erros, setErros] = useState<Erros>({});
-  const [enviando, setEnviando] = useState(false);
-
-  function toggleProva(uf: UF) {
-    setProvas((prev) =>
-      prev.includes(uf) ? prev.filter((p) => p !== uf) : [...prev, uf]
-    );
-  }
-
-  function validar(): boolean {
-    const e: Erros = {};
-    if (nome.trim().length < 3) e.nome = "Informe seu nome completo.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      e.email = "Informe um e-mail válido.";
-    if (telefone.replace(/\D/g, "").length < 10)
-      e.telefone = "Informe um telefone com DDD.";
-    if (provas.length === 0)
-      e.provas = "Selecione ao menos um estado/prova.";
-    setErros(e);
-    return Object.keys(e).length === 0;
-  }
-
-  async function onSubmit(ev: React.FormEvent) {
-    ev.preventDefault();
-    if (!validar()) return;
-    setEnviando(true);
-
-    // TODO: integrar com o CRM aqui (RD Station / HubSpot / etc.)
-    // Por enquanto apenas simula o envio e segue para os conteúdos.
-    const lead = { nome, email, telefone, provas };
-    console.log("Lead capturado (mock):", lead);
-    await new Promise((r) => setTimeout(r, 600));
-
-    router.push("/conteudos");
-  }
+  const erros = state.erros ?? {};
+  const valores = state.valores;
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5" noValidate>
+    <form action={formAction} className="space-y-5" noValidate>
+      {/* Honeypot anti-bot (invisível; humanos não preenchem) */}
+      <input
+        type="text"
+        name="site"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden
+        className="absolute -left-[9999px] h-0 w-0 opacity-0"
+      />
+      {voltar && <input type="hidden" name="voltar" value={voltar} />}
+
       <Campo label="Nome completo" erro={erros.nome} htmlFor="nome">
         <input
           id="nome"
+          name="nome"
           type="text"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
+          defaultValue={valores?.nome}
           placeholder="Seu nome"
           className="input"
           autoComplete="name"
+          maxLength={120}
+          aria-invalid={!!erros.nome}
+          aria-describedby={erros.nome ? "nome-erro" : undefined}
         />
       </Campo>
 
       <Campo label="E-mail" erro={erros.email} htmlFor="email">
         <input
           id="email"
+          name="email"
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          defaultValue={valores?.email}
           placeholder="voce@email.com"
           className="input"
           autoComplete="email"
+          maxLength={254}
+          aria-invalid={!!erros.email}
+          aria-describedby={erros.email ? "email-erro" : undefined}
         />
       </Campo>
 
       <Campo label="Telefone / WhatsApp" erro={erros.telefone} htmlFor="telefone">
         <input
           id="telefone"
+          name="telefone"
           type="tel"
-          value={telefone}
+          value={telefone || valores?.telefone || ""}
           onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
           placeholder="(11) 99999-9999"
           className="input"
           autoComplete="tel"
+          maxLength={20}
+          aria-invalid={!!erros.telefone}
+          aria-describedby={erros.telefone ? "telefone-erro" : undefined}
         />
       </Campo>
 
-      <Campo
-        label="Quais provas você vai prestar?"
-        erro={erros.provas}
-        htmlFor=""
+      {/* Grupo de UFs com fieldset/legend (leitores de tela ganham contexto) */}
+      <fieldset
+        aria-describedby={erros.provas ? "provas-erro" : undefined}
       >
+        <legend className="mb-1.5 block text-sm font-semibold text-foreground">
+          Quais provas você vai prestar?
+        </legend>
         <div className="no-scrollbar mt-1 flex max-h-40 flex-wrap gap-2 overflow-y-auto">
-          {ESTADOS.map((e) => {
-            const ativo = provas.includes(e.uf);
-            return (
-              <button
-                key={e.uf}
-                type="button"
-                onClick={() => toggleProva(e.uf)}
-                title={e.nome}
-                className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
-                  ativo
-                    ? "border-teal bg-teal text-black"
-                    : "border-border bg-surface text-muted hover:border-teal/50 hover:text-foreground"
-                }`}
-              >
+          {ESTADOS.map((e) => (
+            <label key={e.uf} className="cursor-pointer">
+              <input
+                type="checkbox"
+                name="provas"
+                value={e.uf}
+                defaultChecked={valores?.provas.includes(e.uf)}
+                className="peer sr-only"
+                aria-label={e.nome}
+              />
+              <span className="inline-block rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:border-teal/50 hover:text-foreground peer-checked:border-teal peer-checked:bg-teal peer-checked:text-black">
                 {e.uf}
-              </button>
-            );
-          })}
+              </span>
+            </label>
+          ))}
         </div>
-      </Campo>
+        {erros.provas && (
+          <p id="provas-erro" className="mt-1 text-xs text-error">
+            {erros.provas}
+          </p>
+        )}
+      </fieldset>
 
       <button
         type="submit"
-        disabled={enviando}
+        disabled={pending}
         className="w-full rounded-lg bg-teal px-4 py-3 text-base font-bold text-black transition-colors hover:bg-teal-strong disabled:opacity-60"
       >
-        {enviando ? "Enviando..." : "Acessar conteúdos"}
+        {pending ? "Enviando..." : "Desbloquear conteúdos"}
       </button>
 
       <p className="text-center text-xs text-muted">
@@ -158,13 +152,17 @@ function Campo({
   return (
     <div>
       <label
-        htmlFor={htmlFor || undefined}
+        htmlFor={htmlFor}
         className="mb-1.5 block text-sm font-semibold text-foreground"
       >
         {label}
       </label>
       {children}
-      {erro && <p className="mt-1 text-xs text-error">{erro}</p>}
+      {erro && (
+        <p id={`${htmlFor}-erro`} className="mt-1 text-xs text-error">
+          {erro}
+        </p>
+      )}
     </div>
   );
 }

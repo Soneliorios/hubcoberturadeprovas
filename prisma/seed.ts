@@ -1,31 +1,45 @@
 /**
- * Popula o banco com os conteúdos de exemplo (src/data/conteudos.ts).
- * Uso: npm run db:seed
+ * Popula um banco VAZIO com as seções e conteúdos de exemplo
+ * (src/data/conteudos.ts). Uso: npm run db:seed
  */
 import { PrismaClient } from "@prisma/client";
 import { BLOCOS } from "../src/data/conteudos";
-import { BLOCOS_INFO } from "../src/data/blocos";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const total = await prisma.conteudo.count();
-  if (total > 0) {
-    console.log(`Já existem ${total} conteúdos. Seed ignorado.`);
+  // A migração já cria as 6 seções — o guard olha apenas os conteúdos.
+  const totalConteudos = await prisma.conteudo.count();
+  if (totalConteudos > 0) {
+    console.log(`Já existem ${totalConteudos} conteúdos. Seed ignorado.`);
     return;
   }
 
-  let n = 0;
-  for (const bloco of BLOCOS) {
-    const info = BLOCOS_INFO.find((b) => b.id === bloco.id);
-    const nivel = info?.nivel ?? bloco.nivel;
+  let nS = 0;
+  let nC = 0;
+  for (const [ordem, bloco] of BLOCOS.entries()) {
+    // upsert: convive com as seções que a migração já inseriu.
+    await prisma.secao.upsert({
+      where: { id: bloco.id },
+      update: {},
+      create: {
+        id: bloco.id,
+        titulo: bloco.titulo,
+        icone: bloco.icone ?? null,
+        nivel: bloco.nivel,
+        tipoPadrao: bloco.tipoPadrao,
+        acesso: "aberto",
+        ordem,
+      },
+    });
+    nS++;
     for (const item of bloco.itens) {
       await prisma.conteudo.create({
         data: {
           titulo: item.titulo,
           descricao: item.descricao ?? null,
-          blocoId: bloco.id,
-          nivel,
+          secaoId: bloco.id,
+          nivel: bloco.nivel,
           tipo: item.tipo,
           url: item.url,
           prova: item.prova ?? null,
@@ -35,10 +49,10 @@ async function main() {
           publicadoEm: item.publicadoEm ? new Date(item.publicadoEm) : new Date(),
         },
       });
-      n++;
+      nC++;
     }
   }
-  console.log(`✔ ${n} conteúdos inseridos.`);
+  console.log(`✔ ${nS} seções e ${nC} conteúdos inseridos.`);
 }
 
 main()

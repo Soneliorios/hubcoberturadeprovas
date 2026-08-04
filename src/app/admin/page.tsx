@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { listarConteudos } from "@/server/conteudos";
-import { getBloco } from "@/data/blocos";
 import AdminHeader from "./AdminHeader";
 import DeleteButton from "./DeleteButton";
 
@@ -69,7 +68,6 @@ export default async function AdminPage({
         ) : (
           <ul className="space-y-3">
             {conteudos.map((c) => {
-              const bloco = getBloco(c.blocoId);
               const nEstados = contarEstados(c.estados);
               return (
                 <li
@@ -80,7 +78,7 @@ export default async function AdminPage({
                     <div className="min-w-0">
                       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                         <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted">
-                          {bloco?.titulo ?? c.blocoId}
+                          {c.secao.titulo}
                         </span>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${

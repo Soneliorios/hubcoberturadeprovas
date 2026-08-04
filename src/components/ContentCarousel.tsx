@@ -2,15 +2,15 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import type { ContentBlock, ContentItem } from "@/lib/types";
+import type { ContentItem, SecaoInfo } from "@/lib/types";
 import ContentCard from "./ContentCard";
 
-/** Bloco/categoria: título + CTA "ver todos" + carrossel com scroll horizontal. */
+/** Seção: título + CTA "ver todos" + carrossel com scroll horizontal. */
 export default function ContentCarousel({
-  bloco,
+  secao,
   itens,
 }: {
-  bloco: ContentBlock;
+  secao: SecaoInfo;
   itens: ContentItem[];
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -26,11 +26,11 @@ export default function ContentCarousel({
 
   return (
     <section className="py-4">
-      {/* Cabeçalho do bloco */}
+      {/* Cabeçalho da seção */}
       <div className="mb-3 flex items-center justify-between gap-4 px-4 sm:px-6">
         <h2 className="flex items-center gap-2 text-lg font-bold sm:text-xl">
-          {bloco.icone && <span aria-hidden>{bloco.icone}</span>}
-          {bloco.titulo}
+          {secao.icone && <span aria-hidden>{secao.icone}</span>}
+          {secao.titulo}
         </h2>
 
         <div className="flex items-center gap-1">
@@ -60,7 +60,7 @@ export default function ContentCarousel({
 
           {/* CTA ver todos */}
           <Link
-            href={`/conteudos/${bloco.id}`}
+            href={`/conteudos/${secao.id}`}
             className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold text-teal hover:bg-teal/10 transition-colors"
           >
             Ver todos

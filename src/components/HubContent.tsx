@@ -1,26 +1,37 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ContentBlock, Nivel, UF } from "@/lib/types";
+import type { Nivel, SecaoComConteudos, UF } from "@/lib/types";
 import { ESTADOS } from "@/data/estados";
 import { filtrarItens } from "@/lib/filtro";
 import Filtros from "./Filtros";
 import ContentCarousel from "./ContentCarousel";
+import SecaoBloqueada from "./SecaoBloqueada";
 
-/** Conteúdo interativo da home: filtros (nível + estado) + blocos em carrossel. */
-export default function HubContent({ blocos }: { blocos: ContentBlock[] }) {
+/**
+ * Conteúdo interativo da home: filtros (nível + estado) + seções.
+ * Seções bloqueadas (exclusivas para cadastrados) aparecem borradas com CTA —
+ * elas respondem ao filtro de nível, mas não somem com o filtro de estado
+ * (os itens não estão no navegador; a vitrine continua convidando ao cadastro).
+ */
+export default function HubContent({ secoes }: { secoes: SecaoComConteudos[] }) {
   const [nivel, setNivel] = useState<Nivel | null>(null);
   const [uf, setUf] = useState<UF | null>(null);
 
-  const blocosFiltrados = useMemo(
+  const visiveis = useMemo(
     () =>
-      blocos
-        // filtro de nível: R1 (Acesso Direto) ou R+ (Especialidade)
-        .filter((bloco) => !nivel || bloco.nivel === nivel)
-        // filtro de estado: aplicado aos itens de cada bloco
-        .map((bloco) => ({ bloco, itens: filtrarItens(bloco.itens, uf) }))
-        .filter((b) => b.itens.length > 0),
-    [blocos, nivel, uf]
+      secoes
+        .filter(({ secao }) => !nivel || secao.nivel === nivel)
+        .map((s) => ({
+          ...s,
+          itensFiltrados: s.bloqueada ? [] : filtrarItens(s.itens, uf),
+        }))
+        // Seção bloqueada só aparece se tem conteúdo real por trás —
+        // nunca prometer desbloqueio de uma seção vazia.
+        .filter((s) =>
+          s.bloqueada ? s.total > 0 : s.itensFiltrados.length > 0
+        ),
+    [secoes, nivel, uf]
   );
 
   const nomeEstado = uf ? ESTADOS.find((e) => e.uf === uf)?.nome : null;
@@ -59,15 +70,28 @@ export default function HubContent({ blocos }: { blocos: ContentBlock[] }) {
         </div>
       )}
 
-      {blocosFiltrados.length === 0 ? (
+      {visiveis.length === 0 ? (
         <div className="px-4 py-16 text-center text-muted sm:px-6">
           Nenhum conteúdo encontrado para esses filtros ainda.
         </div>
       ) : (
         <div className="divide-y divide-border/40">
-          {blocosFiltrados.map(({ bloco, itens }) => (
-            <ContentCarousel key={bloco.id} bloco={bloco} itens={itens} />
-          ))}
+          {visiveis.map((s) =>
+            s.bloqueada ? (
+              // Com filtro de UF ativo, omitimos a contagem (total ≠ filtrado)
+              <SecaoBloqueada
+                key={s.secao.id}
+                secao={s.secao}
+                total={uf ? 0 : s.total}
+              />
+            ) : (
+              <ContentCarousel
+                key={s.secao.id}
+                secao={s.secao}
+                itens={s.itensFiltrados}
+              />
+            )
+          )}
         </div>
       )}
     </div>

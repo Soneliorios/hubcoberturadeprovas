@@ -1,7 +1,16 @@
 import Image from "next/image";
+import Link from "next/link";
 import CadastroForm from "@/components/CadastroForm";
+import { estaCadastrado } from "@/server/leads";
 
-export default function CadastroPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CadastroPage({
+  searchParams,
+}: PageProps<"/cadastro">) {
+  const [cadastrado, sp] = await Promise.all([estaCadastrado(), searchParams]);
+  const voltar = typeof sp.voltar === "string" ? sp.voltar : undefined;
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
       {/* Orbs decorativos sutis (identidade Medway) */}
@@ -31,15 +40,42 @@ export default function CadastroPage() {
             Central Cobertura de Provas
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Cadastre-se para acessar ultra revisões, previsões Medbrain e lives
-            de correção da sua prova.
+            Cadastre-se gratuitamente para desbloquear todos os conteúdos:
+            ultra revisões, previsões Medbrain e lives de correção.
           </p>
         </div>
 
-        {/* Cartão do formulário */}
+        {/* Cartão */}
         <div className="rounded-2xl border border-border bg-surface/60 p-6 shadow-2xl backdrop-blur sm:p-8">
-          <CadastroForm />
+          {cadastrado ? (
+            <div className="text-center">
+              <span className="text-3xl" aria-hidden>
+                ✅
+              </span>
+              <h2 className="mt-3 text-lg font-bold">Você já está cadastrado!</h2>
+              <p className="mt-1 text-sm text-muted">
+                Todos os conteúdos já estão desbloqueados neste navegador.
+              </p>
+              <Link
+                href="/conteudos"
+                className="mt-5 inline-block w-full rounded-lg bg-teal px-4 py-3 text-base font-bold text-black transition-colors hover:bg-teal-strong"
+              >
+                Ir para os conteúdos
+              </Link>
+            </div>
+          ) : (
+            <CadastroForm voltar={voltar} />
+          )}
         </div>
+
+        <p className="mt-4 text-center">
+          <Link
+            href="/conteudos"
+            className="text-sm font-medium text-muted hover:text-foreground"
+          >
+            Continuar sem cadastro →
+          </Link>
+        </p>
       </div>
     </main>
   );

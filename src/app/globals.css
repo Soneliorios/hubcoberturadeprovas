@@ -23,7 +23,7 @@
 
   /* Semânticas */
   --success: #28a745;
-  --error: #dc3545;
+  --error: #f0616d; /* clareado p/ contraste AA em texto pequeno no dark */
   --warning: #ffc107;
 }
 

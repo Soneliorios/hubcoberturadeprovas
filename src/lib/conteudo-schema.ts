@@ -1,15 +1,14 @@
 import { z } from "zod";
-import { BLOCOS_INFO } from "@/data/blocos";
 import { ESTADOS } from "@/data/estados";
 
-const IDS_BLOCOS = BLOCOS_INFO.map((b) => b.id) as [string, ...string[]];
 const UFS = ESTADOS.map((e) => e.uf) as [string, ...string[]];
 
-/** Validação do formulário de criação/edição de conteúdo (admin). */
+/** Validação do formulário de criação/edição de conteúdo (admin).
+ *  A existência da seção é garantida pelo FK no banco. */
 export const conteudoSchema = z.object({
   titulo: z.string().trim().min(3, "Informe um título (mín. 3 caracteres)."),
   descricao: z.string().trim().max(500).optional().or(z.literal("")),
-  blocoId: z.enum(IDS_BLOCOS, { message: "Selecione um bloco." }),
+  secaoId: z.string().min(1, "Selecione uma seção."),
   tipo: z.enum(["youtube", "arquivo"]),
   url: z.string().trim().url("Informe uma URL válida."),
   prova: z.string().trim().max(60).optional().or(z.literal("")),
