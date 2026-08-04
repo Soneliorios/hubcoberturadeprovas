@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { FormularioHs } from "@/lib/hubspot-form";
 import CadastroForm from "./CadastroForm";
+import CadastroHubspotForm from "./CadastroHubspotForm";
 import EntrarForm from "./EntrarForm";
 
 export type ModoAcesso = "cadastro" | "entrar";
@@ -9,13 +11,16 @@ export type ModoAcesso = "cadastro" | "entrar";
 /**
  * Card da página /cadastro com o switch entre criar cadastro e entrar
  * (para quem já se cadastrou em outro navegador ou perdeu o acesso).
+ * `formHubspot` = definição dinâmica; sem ela, cai no formulário simples.
  */
 export default function AcessoCard({
   modoInicial = "cadastro",
   voltar,
+  formHubspot,
 }: {
   modoInicial?: ModoAcesso;
   voltar?: string;
+  formHubspot?: FormularioHs | null;
 }) {
   const [modo, setModo] = useState<ModoAcesso>(modoInicial);
 
@@ -56,7 +61,11 @@ export default function AcessoCard({
       </div>
 
       {modo === "cadastro" ? (
-        <CadastroForm voltar={voltar} />
+        formHubspot ? (
+          <CadastroHubspotForm form={formHubspot} voltar={voltar} />
+        ) : (
+          <CadastroForm voltar={voltar} />
+        )
       ) : (
         <EntrarForm voltar={voltar} />
       )}

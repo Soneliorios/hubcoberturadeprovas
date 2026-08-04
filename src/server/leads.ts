@@ -38,6 +38,34 @@ export async function marcarCadastrado(leadId: string): Promise<void> {
   });
 }
 
+/** Salva o lead vindo do formulário HubSpot (todas as respostas em JSON). */
+export async function salvarLeadHubspot(dados: {
+  nome: string;
+  email: string;
+  telefone: string;
+  respostas: string;
+}): Promise<Lead> {
+  return prisma.lead.upsert({
+    where: { email: dados.email },
+    update: {
+      nome: dados.nome,
+      telefone: dados.telefone,
+      respostas: dados.respostas,
+    },
+    create: {
+      nome: dados.nome,
+      email: dados.email,
+      telefone: dados.telefone,
+      respostas: dados.respostas,
+    },
+  });
+}
+
+/** Marca que o lead foi sincronizado com a HubSpot. */
+export async function marcarHubspotSincronizado(id: string): Promise<void> {
+  await prisma.lead.update({ where: { id }, data: { hubspotEm: new Date() } });
+}
+
 /** Busca um lead pelo e-mail (usado no "entrar" de quem já se cadastrou). */
 export async function buscarLeadPorEmail(email: string): Promise<Lead | null> {
   return prisma.lead.findUnique({ where: { email } });

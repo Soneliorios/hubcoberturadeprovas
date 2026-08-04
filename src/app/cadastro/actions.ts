@@ -2,13 +2,22 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { cadastroSchema } from "@/lib/cadastro-schema";
 import {
   salvarLead,
+  salvarLeadHubspot,
   marcarCadastrado,
+  marcarHubspotSincronizado,
   buscarLeadPorEmail,
 } from "@/server/leads";
+import { getFormularioHubspot, enviarParaHubspot } from "@/server/hubspot";
+import {
+  validarRespostas,
+  respostasVisiveis,
+  type ValoresHs,
+} from "@/lib/hubspot-form";
 
 /** Valores ecoados de volta ao formulário quando a validação falha
  *  (o React 19 reseta forms após a action — sem isso o visitante perderia tudo). */
@@ -62,6 +71,79 @@ export async function cadastrarAction(
   const lead = await salvarLead(parsed.data);
   await marcarCadastrado(lead.id);
 
+  revalidatePath("/conteudos");
+  const destino = destinoSeguro(String(formData.get("voltar") ?? "/conteudos"));
+  redirect(`${destino}?cadastro=ok`);
+}
+
+/* ===== Cadastro via formulário HubSpot (dinâmico, com lógica condicional) ===== */
+
+export interface HsFormState {
+  ok: boolean;
+  /** { nomeDoCampo: mensagem } — "form" para erro geral */
+  erros?: Record<string, string>;
+}
+
+export async function cadastrarHubspotAction(
+  _prev: HsFormState,
+  formData: FormData
+): Promise<HsFormState> {
+  // Honeypot anti-bot.
+  if (String(formData.get("site") ?? "") !== "") {
+    redirect("/conteudos");
+  }
+
+  let valores: ValoresHs;
+  let extras: Record<string, string> = {};
+  try {
+    valores = JSON.parse(String(formData.get("payload") ?? "{}"));
+    extras = JSON.parse(String(formData.get("extras") ?? "{}"));
+  } catch {
+    return { ok: false, erros: { form: "Envio inválido. Recarregue a página." } };
+  }
+
+  // Revalida TUDO no servidor (visibilidade condicional + obrigatórios).
+  const form = await getFormularioHubspot();
+  const erros = validarRespostas(form, valores);
+  if (Object.keys(erros).length > 0) {
+    return { ok: false, erros };
+  }
+  const respostas = respostasVisiveis(form, valores);
+
+  const email = String(respostas.email ?? "").toLowerCase();
+  if (!email) {
+    return { ok: false, erros: { email: "Informe um e-mail válido." } };
+  }
+  const nome = [respostas.firstname, respostas.lastname]
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 200);
+  const telefone = String(respostas.phone ?? "").slice(0, 30);
+
+  // 1) Nossa base — sempre, mesmo se a HubSpot falhar.
+  const lead = await salvarLeadHubspot({
+    nome: nome || email,
+    email,
+    telefone,
+    respostas: JSON.stringify(respostas),
+  });
+
+  // 2) HubSpot — submissão de formulário (respeita as condicionais). O hutk
+  //    do rastreamento associa a submissão à navegação (atribuição de origem).
+  try {
+    const store = await cookies();
+    await enviarParaHubspot(form, respostas, {
+      hutk: store.get("hubspotutk")?.value,
+      pageUri: extras.pageUri,
+      pageName: "Central Cobertura de Provas — Cadastro",
+    });
+    await marcarHubspotSincronizado(lead.id);
+  } catch (e) {
+    // Lead está salvo na nossa base (hubspotEm = null permite reprocessar).
+    console.error("[hubspot] falha ao sincronizar lead:", e);
+  }
+
+  await marcarCadastrado(lead.id);
   revalidatePath("/conteudos");
   const destino = destinoSeguro(String(formData.get("voltar") ?? "/conteudos"));
   redirect(`${destino}?cadastro=ok`);

@@ -81,8 +81,12 @@ model Lead {
   nome      String
   email     String   @unique
   telefone  String
-  /// UFs das provas que vai prestar, em JSON: ["SP","RJ"]
+  /// UFs das provas que vai prestar, em JSON: ["SP","RJ"] (formulário antigo)
   provas    String   @default("[]")
+  /// Todas as respostas do formulário HubSpot, em JSON { campo: valor }
+  respostas String   @default("{}")
+  /// Quando o lead foi enviado com sucesso à HubSpot (null = pendente/reprocessar)
+  hubspotEm DateTime?
   criadoEm  DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 }

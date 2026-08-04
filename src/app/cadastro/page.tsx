@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import AcessoCard from "@/components/AcessoCard";
 import { estaCadastrado } from "@/server/leads";
+import { getFormularioHubspot } from "@/server/hubspot";
+import type { FormularioHs } from "@/lib/hubspot-form";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,14 @@ export default async function CadastroPage({
   const [cadastrado, sp] = await Promise.all([estaCadastrado(), searchParams]);
   const voltar = typeof sp.voltar === "string" ? sp.voltar : undefined;
   const modoInicial = sp.modo === "entrar" ? "entrar" : "cadastro";
+
+  // Formulário dinâmico da HubSpot; se indisponível, cai no formulário simples.
+  let formHubspot: FormularioHs | null = null;
+  try {
+    formHubspot = await getFormularioHubspot();
+  } catch (e) {
+    console.error("[hubspot] definição indisponível, usando formulário simples:", e);
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
@@ -65,7 +75,11 @@ export default async function CadastroPage({
               </Link>
             </div>
           ) : (
-            <AcessoCard modoInicial={modoInicial} voltar={voltar} />
+            <AcessoCard
+              modoInicial={modoInicial}
+              voltar={voltar}
+              formHubspot={formHubspot}
+            />
           )}
         </div>
 

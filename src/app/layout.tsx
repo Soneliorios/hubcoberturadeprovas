@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import IntroSplash from "@/components/IntroSplash";
+import HubspotTracking from "@/components/HubspotTracking";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -21,6 +22,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <IntroSplash />
         {children}
+        {/* HubSpot: rastreamento + atribuição de origem dos leads (só páginas públicas) */}
+        <HubspotTracking />
       </body>
     </html>
   );
