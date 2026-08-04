@@ -9,6 +9,8 @@ export const conteudoSchema = z.object({
   titulo: z.string().trim().min(3, "Informe um título (mín. 3 caracteres)."),
   descricao: z.string().trim().max(500).optional().or(z.literal("")),
   secaoId: z.string().min(1, "Selecione uma seção."),
+  /** "herdar" segue a seção; "aberto"/"cadastro" sobrescrevem por conteúdo */
+  acesso: z.enum(["herdar", "aberto", "cadastro"]).default("herdar"),
   tipo: z.enum(["youtube", "arquivo"]),
   url: z.string().trim().url("Informe uma URL válida."),
   prova: z.string().trim().max(60).optional().or(z.literal("")),

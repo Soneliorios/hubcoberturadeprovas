@@ -10,6 +10,7 @@ export interface ConteudoDefaults {
   titulo?: string;
   descricao?: string;
   secaoId?: string;
+  acesso?: "herdar" | "aberto" | "cadastro";
   tipo?: ContentType;
   url?: string;
   prova?: string;
@@ -43,6 +44,9 @@ export default function ConteudoForm({
         titulo: v.titulo,
         descricao: v.descricao,
         secaoId: v.secaoId,
+        acesso: (["aberto", "cadastro"].includes(v.acesso)
+          ? v.acesso
+          : "herdar") as "herdar" | "aberto" | "cadastro",
         tipo: (v.tipo === "arquivo" ? "arquivo" : "youtube") as ContentType,
         url: v.url,
         prova: v.prova,
@@ -88,6 +92,23 @@ export default function ConteudoForm({
             </option>
           ))}
         </select>
+      </Campo>
+
+      {/* Acesso do conteúdo (sobrescreve o da seção) */}
+      <Campo label="Acesso deste conteúdo" erro={erros.acesso} htmlFor="acesso">
+        <select
+          id="acesso"
+          name="acesso"
+          defaultValue={d.acesso ?? "herdar"}
+          className="input"
+        >
+          <option value="herdar">↕️ Herdar da seção (padrão)</option>
+          <option value="aberto">🌐 Sempre aberto — mesmo em seção restrita</option>
+          <option value="cadastro">🔒 Somente cadastrados — mesmo em seção aberta</option>
+        </select>
+        <p className="mt-1 text-xs text-muted">
+          Conteúdo restrito aparece como card com cadeado convidando ao cadastro.
+        </p>
       </Campo>
 
       {/* Tipo */}

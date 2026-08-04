@@ -92,6 +92,16 @@ export default async function AdminPage({
                         <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-muted">
                           {nEstados === 0 ? "Nacional" : `${nEstados} estado(s)`}
                         </span>
+                        {c.acesso === "aberto" && (
+                          <span className="rounded-full bg-teal/15 px-2 py-0.5 text-[11px] font-semibold text-teal">
+                            🌐 Sempre aberto
+                          </span>
+                        )}
+                        {c.acesso === "cadastro" && (
+                          <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-warning">
+                            🔒 Cadastrados
+                          </span>
+                        )}
                       </div>
                       <h3 className="truncate font-semibold">{c.titulo}</h3>
                       {c.prova && (

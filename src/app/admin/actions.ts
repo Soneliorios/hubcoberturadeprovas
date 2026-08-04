@@ -17,6 +17,7 @@ export interface ConteudoValores {
   titulo: string;
   descricao: string;
   secaoId: string;
+  acesso: string;
   tipo: string;
   url: string;
   prova: string;
@@ -44,6 +45,7 @@ function lerValores(formData: FormData): ConteudoValores {
     titulo: String(formData.get("titulo") ?? ""),
     descricao: String(formData.get("descricao") ?? ""),
     secaoId: String(formData.get("secaoId") ?? ""),
+    acesso: String(formData.get("acesso") ?? "herdar"),
     tipo: String(formData.get("tipo") ?? "youtube"),
     url: String(formData.get("url") ?? ""),
     prova: String(formData.get("prova") ?? ""),

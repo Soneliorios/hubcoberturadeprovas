@@ -56,6 +56,9 @@ model Conteudo {
   secao       Secao    @relation(fields: [secaoId], references: [id])
   /// "R1" ou "R+" — derivado da seção no momento da gravação
   nivel       String
+  /// "herdar" (segue a seção), "aberto" (sempre público) ou
+  /// "cadastro" (travado mesmo em seção aberta)
+  acesso      String   @default("herdar")
   /// "youtube" ou "arquivo"
   tipo        String
   url         String

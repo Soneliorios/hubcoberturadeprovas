@@ -116,7 +116,11 @@ export default async function SecaoPage({
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-4">
               {itens.map((item) => (
-                <ContentCard key={item.id} item={item} />
+                <ContentCard
+                  key={item.id}
+                  item={item}
+                  voltar={`/conteudos/${secao.id}`}
+                />
               ))}
             </div>
           )}

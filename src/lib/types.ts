@@ -18,8 +18,12 @@ export interface ContentItem {
   titulo: string;
   descricao?: string;
   tipo: ContentType;
-  /** URL do vídeo no YouTube ou do arquivo para download */
+  /** URL do vídeo no YouTube ou do arquivo. Vazia quando `bloqueado`
+   *  (teaser: nenhum dado do asset chega ao navegador). */
   url: string;
+  /** true = exclusivo para cadastrados e o visitante ainda não se cadastrou
+   *  (renderiza card-teaser com cadeado e CTA) */
+  bloqueado?: boolean;
   /** Imagem de capa (thumbnail). Opcional — há fallback visual. */
   thumbnail?: string;
   /** Instituição/prova relacionada (ex.: "USP-SP", "ENARE") */

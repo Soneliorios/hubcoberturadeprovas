@@ -9,8 +9,10 @@ import type {
 import type { ConteudoInput } from "@/lib/conteudo-schema";
 import type { Conteudo, Secao } from "@prisma/client";
 
-/** Converte um registro do banco no formato usado pela UI. */
-function toContentItem(c: Conteudo): ContentItem {
+/** Converte um registro do banco no formato usado pela UI.
+ *  `bloqueado` gera um TEASER: título/prova/duração visíveis (isca de
+ *  conversão), mas SEM url nem thumbnail — nenhum dado do asset no HTML. */
+function toContentItem(c: Conteudo, bloqueado = false): ContentItem {
   let estados: UF[] = [];
   try {
     estados = JSON.parse(c.estados) as UF[];
@@ -22,13 +24,24 @@ function toContentItem(c: Conteudo): ContentItem {
     titulo: c.titulo,
     descricao: c.descricao ?? undefined,
     tipo: c.tipo === "arquivo" ? "arquivo" : "youtube",
-    url: c.url,
-    thumbnail: c.thumbnail ?? undefined,
+    url: bloqueado ? "" : c.url,
+    bloqueado: bloqueado || undefined,
+    thumbnail: bloqueado ? undefined : c.thumbnail ?? undefined,
     prova: c.prova ?? undefined,
     estados,
     publicadoEm: c.publicadoEm.toISOString(),
     duracaoMin: c.duracaoMin ?? undefined,
   };
+}
+
+/**
+ * Acesso efetivo de um conteúdo: o campo próprio sobrescreve o da seção;
+ * "herdar" (padrão) segue a seção.
+ */
+function conteudoRestrito(c: Conteudo, secaoAcesso: string): boolean {
+  if (c.acesso === "aberto") return false;
+  if (c.acesso === "cadastro") return true;
+  return secaoAcesso === "cadastro";
 }
 
 export function toSecaoInfo(s: Secao): SecaoInfo {
@@ -44,46 +57,60 @@ export function toSecaoInfo(s: Secao): SecaoInfo {
 }
 
 /**
- * Seções com conteúdos para a home.
- * Seções "cadastro" para visitante sem cadastro chegam BLOQUEADAS:
- * `itens` vazio (nenhum dado real no HTML) e `total` para os placeholders.
+ * Monta a visão de uma seção respeitando o acesso EFETIVO por conteúdo
+ * (o campo do conteúdo sobrescreve o da seção; "herdar" segue a seção):
+ * - visitante desbloqueado: tudo normal;
+ * - todos os itens restritos: `bloqueada` = vitrine borrada (mistério, sem dados);
+ * - mistura: carrossel com cards reais + teasers (título visível, sem url).
  */
+function montarSecao(
+  s: Secao & { conteudos: Conteudo[] },
+  desbloqueado: boolean
+): SecaoComConteudos {
+  const restritos = desbloqueado
+    ? new Set<string>()
+    : new Set(
+        s.conteudos
+          .filter((c) => conteudoRestrito(c, s.acesso))
+          .map((c) => c.id)
+      );
+
+  const total = s.conteudos.length;
+  // Vitrine-mistério apenas quando NADA da seção está acessível.
+  const bloqueada = total > 0 && restritos.size === total;
+
+  return {
+    secao: toSecaoInfo(s),
+    bloqueada,
+    itens: bloqueada
+      ? []
+      : s.conteudos.map((c) => toContentItem(c, restritos.has(c.id))),
+    total,
+  };
+}
+
+/** Seções com conteúdos para a home (gate por seção E por conteúdo). */
 export async function getSecoesComConteudos(
-  cadastrado: boolean
+  desbloqueado: boolean
 ): Promise<SecaoComConteudos[]> {
   const secoes = await prisma.secao.findMany({
     orderBy: { ordem: "asc" },
     include: { conteudos: { orderBy: { publicadoEm: "desc" } } },
   });
-
-  return secoes.map((s) => {
-    const bloqueada = s.acesso === "cadastro" && !cadastrado;
-    return {
-      secao: toSecaoInfo(s),
-      bloqueada,
-      itens: bloqueada ? [] : s.conteudos.map(toContentItem),
-      total: s.conteudos.length,
-    };
-  });
+  return secoes.map((s) => montarSecao(s, desbloqueado));
 }
 
 /** Uma seção com seus conteúdos (página "ver todos"), com o mesmo gate. */
 export async function getSecaoComConteudos(
   secaoId: string,
-  cadastrado: boolean
+  desbloqueado: boolean
 ): Promise<SecaoComConteudos | null> {
   const s = await prisma.secao.findUnique({
     where: { id: secaoId },
     include: { conteudos: { orderBy: { publicadoEm: "desc" } } },
   });
   if (!s) return null;
-  const bloqueada = s.acesso === "cadastro" && !cadastrado;
-  return {
-    secao: toSecaoInfo(s),
-    bloqueada,
-    itens: bloqueada ? [] : s.conteudos.map(toContentItem),
-    total: s.conteudos.length,
-  };
+  return montarSecao(s, desbloqueado);
 }
 
 /**
@@ -92,7 +119,15 @@ export async function getSecaoComConteudos(
  */
 export async function getNotificacoes(desbloqueado: boolean) {
   const recentes = await prisma.conteudo.findMany({
-    where: desbloqueado ? {} : { secao: { acesso: "aberto" } },
+    // Sem desbloqueio, só conteúdos efetivamente abertos (próprio ou herdado).
+    where: desbloqueado
+      ? {}
+      : {
+          OR: [
+            { acesso: "aberto" },
+            { acesso: "herdar", secao: { acesso: "aberto" } },
+          ],
+        },
     orderBy: { publicadoEm: "desc" },
     take: 3,
     select: { id: true, titulo: true, publicadoEm: true },
@@ -130,6 +165,7 @@ export async function criarConteudo(input: ConteudoInput): Promise<Conteudo> {
       descricao: input.descricao || null,
       secaoId: input.secaoId,
       nivel: await nivelDaSecao(input.secaoId),
+      acesso: input.acesso,
       tipo: input.tipo,
       url: input.url,
       prova: input.prova || null,
@@ -151,6 +187,7 @@ export async function atualizarConteudo(
       descricao: input.descricao || null,
       secaoId: input.secaoId,
       nivel: await nivelDaSecao(input.secaoId),
+      acesso: input.acesso,
       tipo: input.tipo,
       url: input.url,
       prova: input.prova || null,

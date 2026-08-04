@@ -54,6 +54,9 @@ export default async function EditarConteudoPage({
             titulo: conteudo.titulo,
             descricao: conteudo.descricao ?? undefined,
             secaoId: conteudo.secaoId,
+            acesso: (["aberto", "cadastro"].includes(conteudo.acesso)
+              ? conteudo.acesso
+              : "herdar") as "herdar" | "aberto" | "cadastro",
             tipo: (conteudo.tipo === "arquivo" ? "arquivo" : "youtube") as ContentType,
             url: conteudo.url,
             prova: conteudo.prova ?? undefined,
