@@ -4,14 +4,19 @@ import { useRef } from "react";
 import Link from "next/link";
 import type { ContentItem, SecaoInfo } from "@/lib/types";
 import ContentCard from "./ContentCard";
+import ConteudosBloqueadosCTA from "./ConteudosBloqueadosCTA";
 
-/** Seção: título + CTA "ver todos" + carrossel com scroll horizontal. */
+/** Seção: título + CTA "ver todos" + carrossel com scroll horizontal.
+ *  `bloqueados` > 0 adiciona, após os cards abertos, o bloco borrado
+ *  com CTA de cadastro representando os conteúdos restritos. */
 export default function ContentCarousel({
   secao,
   itens,
+  bloqueados = 0,
 }: {
   secao: SecaoInfo;
   itens: ContentItem[];
+  bloqueados?: number;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -22,7 +27,7 @@ export default function ContentCarousel({
     el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
   }
 
-  if (itens.length === 0) return null;
+  if (itens.length === 0 && bloqueados === 0) return null;
 
   return (
     <section className="py-4">
@@ -71,7 +76,7 @@ export default function ContentCarousel({
         </div>
       </div>
 
-      {/* Carrossel */}
+      {/* Carrossel: abertos primeiro; restritos viram o bloco borrado no fim */}
       <div
         ref={scrollRef}
         className="carousel no-scrollbar flex gap-4 overflow-x-auto px-4 pb-2 sm:px-6"
@@ -79,6 +84,14 @@ export default function ContentCarousel({
         {itens.map((item) => (
           <ContentCard key={item.id} item={item} />
         ))}
+        {bloqueados > 0 && (
+          <ConteudosBloqueadosCTA
+            secao={secao}
+            quantidade={bloqueados}
+            layout="carrossel"
+            voltar={`/conteudos/${secao.id}`}
+          />
+        )}
       </div>
     </section>
   );

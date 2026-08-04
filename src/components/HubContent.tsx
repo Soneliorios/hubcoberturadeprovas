@@ -27,9 +27,12 @@ export default function HubContent({ secoes }: { secoes: SecaoComConteudos[] }) 
           itensFiltrados: s.bloqueada ? [] : filtrarItens(s.itens, uf),
         }))
         // Seção bloqueada só aparece se tem conteúdo real por trás —
-        // nunca prometer desbloqueio de uma seção vazia.
+        // nunca prometer desbloqueio de uma seção vazia. Seção mista
+        // permanece visível pelo bloco de restritos mesmo sob filtro de UF.
         .filter((s) =>
-          s.bloqueada ? s.total > 0 : s.itensFiltrados.length > 0
+          s.bloqueada
+            ? s.total > 0
+            : s.itensFiltrados.length > 0 || s.bloqueados > 0
         ),
     [secoes, nivel, uf]
   );
@@ -89,6 +92,7 @@ export default function HubContent({ secoes }: { secoes: SecaoComConteudos[] }) 
                 key={s.secao.id}
                 secao={s.secao}
                 itens={s.itensFiltrados}
+                bloqueados={s.bloqueados}
               />
             )
           )}

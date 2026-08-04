@@ -9,10 +9,8 @@ import type {
 import type { ConteudoInput } from "@/lib/conteudo-schema";
 import type { Conteudo, Secao } from "@prisma/client";
 
-/** Converte um registro do banco no formato usado pela UI.
- *  `bloqueado` gera um TEASER: título/prova/duração visíveis (isca de
- *  conversão), mas SEM url nem thumbnail — nenhum dado do asset no HTML. */
-function toContentItem(c: Conteudo, bloqueado = false): ContentItem {
+/** Converte um registro do banco no formato usado pela UI. */
+function toContentItem(c: Conteudo): ContentItem {
   let estados: UF[] = [];
   try {
     estados = JSON.parse(c.estados) as UF[];
@@ -24,9 +22,8 @@ function toContentItem(c: Conteudo, bloqueado = false): ContentItem {
     titulo: c.titulo,
     descricao: c.descricao ?? undefined,
     tipo: c.tipo === "arquivo" ? "arquivo" : "youtube",
-    url: bloqueado ? "" : c.url,
-    bloqueado: bloqueado || undefined,
-    thumbnail: bloqueado ? undefined : c.thumbnail ?? undefined,
+    url: c.url,
+    thumbnail: c.thumbnail ?? undefined,
     prova: c.prova ?? undefined,
     estados,
     publicadoEm: c.publicadoEm.toISOString(),
@@ -60,31 +57,28 @@ export function toSecaoInfo(s: Secao): SecaoInfo {
  * Monta a visão de uma seção respeitando o acesso EFETIVO por conteúdo
  * (o campo do conteúdo sobrescreve o da seção; "herdar" segue a seção):
  * - visitante desbloqueado: tudo normal;
- * - todos os itens restritos: `bloqueada` = vitrine borrada (mistério, sem dados);
- * - mistura: carrossel com cards reais + teasers (título visível, sem url).
+ * - todos os itens restritos: `bloqueada` = vitrine borrada (mistério);
+ * - mistura: `itens` = SÓ os abertos (restritos nem chegam ao HTML) e
+ *   `bloqueados` informa quantos ficam no bloco borrado com CTA.
  */
 function montarSecao(
   s: Secao & { conteudos: Conteudo[] },
   desbloqueado: boolean
 ): SecaoComConteudos {
-  const restritos = desbloqueado
-    ? new Set<string>()
-    : new Set(
-        s.conteudos
-          .filter((c) => conteudoRestrito(c, s.acesso))
-          .map((c) => c.id)
-      );
+  const abertos = desbloqueado
+    ? s.conteudos
+    : s.conteudos.filter((c) => !conteudoRestrito(c, s.acesso));
 
   const total = s.conteudos.length;
+  const bloqueados = total - abertos.length;
   // Vitrine-mistério apenas quando NADA da seção está acessível.
-  const bloqueada = total > 0 && restritos.size === total;
+  const bloqueada = total > 0 && bloqueados === total;
 
   return {
     secao: toSecaoInfo(s),
     bloqueada,
-    itens: bloqueada
-      ? []
-      : s.conteudos.map((c) => toContentItem(c, restritos.has(c.id))),
+    itens: bloqueada ? [] : abertos.map(toContentItem),
+    bloqueados,
     total,
   };
 }

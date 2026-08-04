@@ -18,12 +18,8 @@ export interface ContentItem {
   titulo: string;
   descricao?: string;
   tipo: ContentType;
-  /** URL do vídeo no YouTube ou do arquivo. Vazia quando `bloqueado`
-   *  (teaser: nenhum dado do asset chega ao navegador). */
+  /** URL do vídeo no YouTube ou do arquivo para download */
   url: string;
-  /** true = exclusivo para cadastrados e o visitante ainda não se cadastrou
-   *  (renderiza card-teaser com cadeado e CTA) */
-  bloqueado?: boolean;
   /** Imagem de capa (thumbnail). Opcional — há fallback visual. */
   thumbnail?: string;
   /** Instituição/prova relacionada (ex.: "USP-SP", "ENARE") */
@@ -63,14 +59,18 @@ export interface SecaoInfo {
 }
 
 /**
- * Seção pronta para a home. Quando `bloqueada` (visitante sem cadastro em
- * seção "cadastro"), `itens` vem VAZIO — nenhum dado real chega ao navegador;
- * `total` permite desenhar os placeholders borrados.
+ * Seção pronta para a home. `itens` traz APENAS os conteúdos acessíveis ao
+ * visitante — os restritos nunca chegam ao navegador (nem o título):
+ * - `bloqueada` = tudo restrito → vitrine-mistério borrada;
+ * - `bloqueados` > 0 com itens abertos → abertos primeiro + bloco borrado
+ *   no fim do carrossel com CTA de cadastro.
  */
 export interface SecaoComConteudos {
   secao: SecaoInfo;
   bloqueada: boolean;
   itens: ContentItem[];
+  /** Quantos conteúdos da seção estão restritos para este visitante */
+  bloqueados: number;
   total: number;
 }
 

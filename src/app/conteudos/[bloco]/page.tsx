@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import ContentCard from "@/components/ContentCard";
 import BannerCadastroOk from "@/components/BannerCadastroOk";
+import ConteudosBloqueadosCTA from "@/components/ConteudosBloqueadosCTA";
 import { getSecaoComConteudos } from "@/server/conteudos";
 import { estaCadastrado } from "@/server/leads";
 import { auth } from "@/auth";
@@ -22,7 +23,7 @@ export default async function SecaoPage({
   const desbloqueado = cadastrado || !!session?.user;
   const dados = await getSecaoComConteudos(secaoId, desbloqueado);
   if (!dados) notFound();
-  const { secao, bloqueada, itens, total } = dados;
+  const { secao, bloqueada, itens, bloqueados, total } = dados;
   // Seção restrita mas vazia não promete nada — trata como seção vazia.
   const mostrarBloqueio = bloqueada && total > 0;
 
@@ -53,7 +54,9 @@ export default async function SecaoPage({
           <p className="mb-6 text-sm text-muted">
             {mostrarBloqueio
               ? `${total} conteúdo${total === 1 ? "" : "s"} exclusivo${total === 1 ? "" : "s"} para cadastrados`
-              : `${total} conteúdo${total === 1 ? "" : "s"} disponíve${total === 1 ? "l" : "is"}`}
+              : bloqueados > 0
+                ? `${total} conteúdo${total === 1 ? "" : "s"} · ${bloqueados} exclusivo${bloqueados === 1 ? "" : "s"} para cadastrados`
+                : `${total} conteúdo${total === 1 ? "" : "s"} disponíve${total === 1 ? "l" : "is"}`}
           </p>
 
           {mostrarBloqueio ? (
@@ -109,20 +112,28 @@ export default async function SecaoPage({
                 </div>
               </div>
             </div>
-          ) : itens.length === 0 ? (
+          ) : itens.length === 0 && bloqueados === 0 ? (
             <p className="py-16 text-center text-muted">
               Nenhum conteúdo nesta seção ainda.
             </p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-4">
-              {itens.map((item) => (
-                <ContentCard
-                  key={item.id}
-                  item={item}
-                  voltar={`/conteudos/${secao.id}`}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] justify-items-center gap-4">
+                {itens.map((item) => (
+                  <ContentCard key={item.id} item={item} />
+                ))}
+              </div>
+              {bloqueados > 0 && (
+                <div className="mt-6">
+                  <ConteudosBloqueadosCTA
+                    secao={secao}
+                    quantidade={bloqueados}
+                    layout="grade"
+                    voltar={`/conteudos/${secao.id}`}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
