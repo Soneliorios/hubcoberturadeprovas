@@ -7,18 +7,31 @@ export default function AdminHeader({ nome }: { nome?: string | null }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Link href="/admin" className="flex items-center gap-2.5">
-          <Image
-            src="/brand/medway-logo.png"
-            alt="Medway"
-            width={110}
-            height={26}
-            className="h-6 w-auto"
-          />
-          <span className="hidden sm:inline text-sm font-semibold text-muted">
-            Admin
-          </span>
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/admin" className="flex items-center gap-2.5">
+            <Image
+              src="/brand/medway-logo.png"
+              alt="Medway"
+              width={110}
+              height={26}
+              className="h-6 w-auto"
+            />
+          </Link>
+          <nav className="flex items-center gap-1">
+            <Link
+              href="/admin"
+              className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-muted hover:text-foreground"
+            >
+              Conteúdos
+            </Link>
+            <Link
+              href="/admin/usuarios"
+              className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-muted hover:text-foreground"
+            >
+              Admins
+            </Link>
+          </nav>
+        </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
