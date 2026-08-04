@@ -17,12 +17,14 @@ export default function CadastroPage() {
       <div className="relative w-full max-w-md">
         {/* Logo + cabeçalho */}
         <div className="mb-8 text-center">
+          {/* unoptimized: mesma URL crua da intro — 1 request, cache compartilhado */}
           <Image
             src="/brand/medway-logo.png"
             alt="Medway"
             width={180}
-            height={44}
+            height={37}
             priority
+            unoptimized
             className="mx-auto h-10 w-auto"
           />
           <h1 className="mt-6 text-2xl font-bold sm:text-3xl">
