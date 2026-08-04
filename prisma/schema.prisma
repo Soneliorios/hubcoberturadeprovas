@@ -1,0 +1,52 @@
+// Schema Prisma — Central Cobertura de Provas
+//
+// DEV (local):  provider = "sqlite",  DATABASE_URL = "file:./dev.db"
+// PROD (Supabase): trocar provider para "postgresql" e apontar a
+//                  DATABASE_URL para a connection string do Supabase.
+// Os modelos foram mantidos compatíveis com ambos (sem tipos exclusivos
+// do Postgres): `estados` é uma string JSON, ids são cuid (String).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Contas de administrador (acesso à área /admin)
+model User {
+  id       String   @id @default(cuid())
+  nome     String
+  email    String   @unique
+  senhaHash String
+  role     String   @default("admin")
+  criadoEm DateTime @default(now())
+}
+
+/// Um conteúdo do hub (vídeo do YouTube ou arquivo para download)
+model Conteudo {
+  id          String   @id @default(cuid())
+  titulo      String
+  descricao   String?
+  /// id de um dos 6 blocos fixos (ver src/data/blocos.ts)
+  blocoId     String
+  /// "R1" (Acesso Direto) ou "R+" (Especialidade)
+  nivel       String
+  /// "youtube" ou "arquivo"
+  tipo        String
+  url         String
+  prova       String?
+  /// Lista de UFs em JSON, ex.: ["SP","RJ"]. Vazio "[]" = nacional.
+  estados     String   @default("[]")
+  thumbnail   String?
+  duracaoMin  Int?
+  publicadoEm DateTime @default(now())
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([blocoId])
+  @@index([nivel])
+}

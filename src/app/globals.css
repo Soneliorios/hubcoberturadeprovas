@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/*
+  Central Cobertura de Provas — tema Dark (Medway)
+  Paleta base do escopo + design system Medway.
+*/
+:root {
+  /* Fundos */
+  --background: #111111;      /* preto grafite (escopo) */
+  --surface: #1a1a1c;         /* cards / superfícies */
+  --surface-2: #232327;       /* superfícies elevadas / hover */
+  --border: #2c2c31;
+
+  /* Texto */
+  --foreground: #ffffff;      /* títulos */
+  --muted: #a0a4a8;           /* texto secundário */
+
+  /* Marca Medway */
+  --teal: #01cfab;            /* verde/teal Medway (ação/destaque) */
+  --teal-strong: #00a88a;
+  --navy: #00205b;            /* azul institucional */
+  --blue: #1862bc;            /* azul secundário */
+
+  /* Semânticas */
+  --success: #28a745;
+  --error: #dc3545;
+  --warning: #ffc107;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-teal: var(--teal);
+  --color-teal-strong: var(--teal-strong);
+  --color-navy: var(--navy);
+  --color-blue: var(--blue);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+
+  --font-sans: var(--font-montserrat);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-montserrat), "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Scroll horizontal dos carrosséis sem barra visível */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Scroll suave em carrosséis com snap */
+.carousel {
+  scroll-snap-type: x proximity;
+}
+.carousel > * {
+  scroll-snap-align: start;
+}
+
+/* Campo de formulário padrão */
+.input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input::placeholder {
+  color: var(--muted);
+}
+.input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 25%, transparent);
+}
