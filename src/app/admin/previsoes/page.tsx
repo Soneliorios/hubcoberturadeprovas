@@ -16,12 +16,20 @@ export default async function AdminPrevisoesPage() {
     <>
       <AdminHeader nome={session?.user?.name} />
       <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold">Previsões</h1>
-          <p className="text-sm text-muted">
-            Crie uma prova, adicione os temas que acham que vão cair e, depois do
-            gabarito, marque o resultado — os usuários recebem a pontuação.
-          </p>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Previsões</h1>
+            <p className="text-sm text-muted">
+              Crie uma prova, adicione os temas que acham que vão cair e, depois do
+              gabarito, marque o resultado — os usuários recebem a pontuação.
+            </p>
+          </div>
+          <Link
+            href="/admin/previsoes/importar"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-teal/60 bg-teal/10 px-4 py-2.5 text-sm font-semibold text-teal transition-colors hover:bg-teal/20"
+          >
+            <span aria-hidden>🔮</span> Importar do MedBrain (PDF)
+          </Link>
         </div>
 
         {/* Nova prova */}

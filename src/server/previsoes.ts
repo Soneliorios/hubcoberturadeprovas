@@ -252,6 +252,37 @@ export async function criarProva(data: {
   });
 }
 
+/**
+ * Cria uma prova já com várias previsões numa única transação.
+ * Usado pela importação do PDF do MedBrain.
+ */
+export async function criarProvaComPrevisoes(data: {
+  nome: string;
+  estado?: string;
+  nivel?: string;
+  dataProva?: Date | null;
+  previsoes: { titulo: string; especialidade?: string; descricao?: string }[];
+}): Promise<Prova> {
+  const max = await prisma.prova.aggregate({ _max: { ordem: true } });
+  return prisma.prova.create({
+    data: {
+      nome: data.nome,
+      estado: data.estado || null,
+      nivel: data.nivel || null,
+      dataProva: data.dataProva ?? null,
+      ordem: (max._max.ordem ?? -1) + 1,
+      previsoes: {
+        create: data.previsoes.map((p, i) => ({
+          titulo: p.titulo,
+          especialidade: p.especialidade || null,
+          descricao: p.descricao || null,
+          ordem: i,
+        })),
+      },
+    },
+  });
+}
+
 export async function atualizarProva(
   id: string,
   data: { nome: string; estado?: string; nivel?: string; dataProva?: Date | null }
