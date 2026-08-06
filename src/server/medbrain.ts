@@ -1,14 +1,15 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, Type } from "@google/genai";
 
 /**
- * Lê um PDF de previsões do MedBrain e extrai, com a IA (Claude), a prova
- * (edição, na capa) e a lista de previsões numeradas, agrupadas por
- * especialidade. Claude lê o PDF de forma visual, então o layout de 2 colunas
- * (que quebra a extração de texto tradicional) não é problema.
+ * Lê um PDF de previsões do MedBrain e extrai, com a IA (Google Gemini), a
+ * prova (edição, na capa) e a lista de previsões numeradas, agrupadas por
+ * especialidade. O Gemini lê o PDF de forma visual (vê as páginas
+ * renderizadas), então o layout de 2 colunas — que quebra a extração de texto
+ * tradicional — não é problema.
  */
 
-const MODELO = "claude-opus-5";
+const MODELO = "gemini-2.5-flash";
 
 export interface PrevisaoExtraida {
   especialidade: string;
@@ -24,48 +25,52 @@ export interface ExtracaoMedbrain {
   previsoes: PrevisaoExtraida[];
 }
 
+/**
+ * Schema no subconjunto aceito pelo Gemini (OpenAPI). Não use
+ * `additionalProperties` — o Gemini não suporta.
+ */
 const SCHEMA = {
-  type: "object",
-  additionalProperties: false,
+  type: Type.OBJECT,
   properties: {
     edicao: {
-      type: "string",
+      type: Type.STRING,
       description: "A edição/prova identificada na capa (ex.: 'HIAE', 'USP-SP').",
     },
     provaNome: {
-      type: "string",
+      type: Type.STRING,
       description: "Nome sugerido para a prova (ex.: 'Edição HIAE').",
     },
     previsoes: {
-      type: "array",
+      type: Type.ARRAY,
       items: {
-        type: "object",
-        additionalProperties: false,
+        type: Type.OBJECT,
         properties: {
           especialidade: {
-            type: "string",
+            type: Type.STRING,
             description:
               "A grande área/especialidade sob a qual a previsão aparece (ex.: 'Clínica Médica', 'Cirurgia Geral', 'Ginecologia e Obstetrícia', 'Pediatria', 'Preventiva').",
           },
           titulo: {
-            type: "string",
+            type: Type.STRING,
             description:
               "O tema/assunto da previsão, curto e objetivo (ex.: 'Fibrilação Atrial', 'Tratamento do DM2').",
           },
           descricao: {
-            type: "string",
+            type: Type.STRING,
             description:
-              "Resumo curto (1-2 frases) do que o material diz sobre por que o tema pode cair. Use string vazia se não houver.",
+              "Resumo curto (1-2 frases) do que o material diz sobre o tema. Use string vazia se não houver.",
           },
         },
         required: ["especialidade", "titulo", "descricao"],
+        propertyOrdering: ["especialidade", "titulo", "descricao"],
       },
     },
   },
   required: ["edicao", "provaNome", "previsoes"],
-} as const;
+  propertyOrdering: ["edicao", "provaNome", "previsoes"],
+};
 
-const PROMPT = `Você recebeu um PDF de "Previsões do MedBrain" — um material que lista os temas que têm maior chance de cair em uma prova de residência médica.
+const PROMPT = `Você recebeu um PDF de "Previsões do MedBrain" — um material que lista os temas com maior chance de cair em uma prova de residência médica.
 
 Sua tarefa: extrair, em JSON, a prova e a lista de previsões.
 
@@ -85,60 +90,58 @@ Regras importantes:
 export async function extrairPrevisoesDoPdf(
   pdfUrl: string
 ): Promise<ExtracaoMedbrain> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "ANTHROPIC_API_KEY não configurada no .env — peça a chave e adicione ao ambiente."
+      "GEMINI_API_KEY não configurada no .env — pegue a chave grátis em aistudio.google.com."
     );
   }
 
   // Baixa o PDF do Storage e converte para base64 (o corpo do server action
-  // tem limite ~4,5MB na Vercel; por isso o PDF já vem do Storage por URL).
+  // tem limite ~4,5MB na Vercel; por isso o PDF vem do Storage por URL).
   const resp = await fetch(pdfUrl);
   if (!resp.ok) {
     throw new Error(`Não consegui baixar o PDF do Storage (HTTP ${resp.status}).`);
   }
   const base64 = Buffer.from(await resp.arrayBuffer()).toString("base64");
 
-  const client = new Anthropic({ apiKey });
+  const ai = new GoogleGenAI({ apiKey });
 
-  const stream = client.messages.stream({
-    model: MODELO,
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "document",
-            source: {
-              type: "base64",
-              media_type: "application/pdf",
-              data: base64,
-            },
-          },
-          { type: "text", text: PROMPT },
-        ],
+  let texto: string | undefined;
+  try {
+    const response = await ai.models.generateContent({
+      model: MODELO,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType: "application/pdf", data: base64 } },
+            { text: PROMPT },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: SCHEMA,
+        // Desliga o "thinking" para dar todo o orçamento à resposta e ir mais rápido.
+        thinkingConfig: { thinkingBudget: 0 },
+        maxOutputTokens: 8192,
+        temperature: 0,
       },
-    ],
-  });
-
-  const message = await stream.finalMessage();
-
-  if (message.stop_reason === "refusal") {
-    throw new Error("A IA recusou processar este arquivo.");
+    });
+    texto = response.text;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`Falha ao chamar a IA (Gemini): ${msg.slice(0, 200)}`);
   }
 
-  const texto = message.content.find((b) => b.type === "text");
-  if (!texto || texto.type !== "text") {
-    throw new Error("A IA não retornou os dados esperados.");
+  if (!texto || !texto.trim()) {
+    throw new Error("A IA não retornou dados (possível bloqueio ou PDF ilegível).");
   }
 
   let dados: ExtracaoMedbrain;
   try {
-    dados = JSON.parse(texto.text) as ExtracaoMedbrain;
+    dados = JSON.parse(texto) as ExtracaoMedbrain;
   } catch {
     throw new Error("Não consegui interpretar a resposta da IA.");
   }
@@ -147,7 +150,7 @@ export async function extrairPrevisoesDoPdf(
   }
 
   // Normaliza/limpa
-  dados.previsoes = dados.previsoes
+  const previsoes = dados.previsoes
     .map((p) => ({
       especialidade: (p.especialidade ?? "").trim(),
       titulo: (p.titulo ?? "").trim(),
@@ -155,9 +158,10 @@ export async function extrairPrevisoesDoPdf(
     }))
     .filter((p) => p.titulo.length > 0);
 
+  const edicao = (dados.edicao ?? "").trim();
   return {
-    edicao: (dados.edicao ?? "").trim(),
-    provaNome: (dados.provaNome ?? "").trim() || (dados.edicao ?? "").trim() || "Previsões MedBrain",
-    previsoes: dados.previsoes,
+    edicao,
+    provaNome: (dados.provaNome ?? "").trim() || edicao || "Previsões MedBrain",
+    previsoes,
   };
 }
