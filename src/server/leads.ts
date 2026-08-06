@@ -72,9 +72,22 @@ export async function buscarLeadPorEmail(email: string): Promise<Lead | null> {
 }
 
 /** O visitante desta requisição já se cadastrou? (gate suave, por cookie) */
-export async function estaCadastrado(): Promise<boolean> {
+/**
+ * Id do lead do visitante atual (do cookie), ou null.
+ * Valida que o lead ainda existe no banco (cookie órfão → null).
+ */
+export async function getLeadIdAtual(): Promise<string | null> {
   const store = await cookies();
-  return !!store.get(CADASTRO_COOKIE)?.value;
+  const id = store.get(CADASTRO_COOKIE)?.value;
+  if (!id) return null;
+  const lead = await prisma.lead.findUnique({ where: { id }, select: { id: true } });
+  return lead?.id ?? null;
+}
+
+/** Está cadastrado? Consistente com a votação: exige lead válido no banco
+ *  (cookie apontando para lead inexistente NÃO conta como cadastrado). */
+export async function estaCadastrado(): Promise<boolean> {
+  return (await getLeadIdAtual()) !== null;
 }
 
 /** Lista leads (mais recentes primeiro) — para futura tela/exportação no admin. */

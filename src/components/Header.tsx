@@ -15,8 +15,24 @@ export default async function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-4 sm:px-6">
-        <Logo />
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-5">
+          <Logo />
+          <nav className="flex items-center gap-1">
+            <Link
+              href="/conteudos"
+              className="rounded-lg px-2 py-1.5 text-sm font-semibold text-muted transition-colors hover:text-foreground sm:px-2.5"
+            >
+              Conteúdos
+            </Link>
+            <Link
+              href="/previsoes"
+              className="rounded-lg px-2 py-1.5 text-sm font-semibold text-muted transition-colors hover:text-foreground sm:px-2.5"
+            >
+              🔮 Previsões
+            </Link>
+          </nav>
+        </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {!ehAdmin && !cadastrado && (
             <Link

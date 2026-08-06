@@ -89,4 +89,62 @@ model Lead {
   hubspotEm DateTime?
   criadoEm  DateTime @default(now())
   atualizadoEm DateTime @updatedAt
+
+  votos Voto[]
+}
+
+/// Uma prova para a qual o time monta previsões de temas (ex.: "USP-SP 2026").
+model Prova {
+  id       String  @id @default(cuid())
+  nome     String
+  /// UF da prova (opcional)
+  estado   String?
+  /// "R1" | "R+" | null
+  nivel    String?
+  /// "votacao" (aberta p/ votar) | "encerrada" (votação fechada, aguardando
+  /// resultado) | "resultado" (gabarito lançado, pontuação disponível)
+  status   String  @default("votacao")
+  /// Data/hora da prova (para contagem regressiva), opcional
+  dataProva DateTime?
+  ordem    Int     @default(0)
+  criadoEm DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  previsoes Previsao[]
+
+  @@index([status])
+}
+
+/// Um tema que o time acredita que pode cair na prova; usuários votam sim/não.
+model Previsao {
+  id            String  @id @default(cuid())
+  provaId       String
+  prova         Prova   @relation(fields: [provaId], references: [id], onDelete: Cascade)
+  titulo        String
+  descricao     String?
+  especialidade String?
+  /// Resultado após a prova: null = indefinido, true = caiu, false = não caiu
+  caiu          Boolean?
+  ordem         Int     @default(0)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  votos Voto[]
+
+  @@index([provaId])
+}
+
+/// Voto de um lead numa previsão (true = vai cair, false = não vai cair).
+model Voto {
+  id         String   @id @default(cuid())
+  previsaoId String
+  previsao   Previsao @relation(fields: [previsaoId], references: [id], onDelete: Cascade)
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  voto       Boolean
+  criadoEm   DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([previsaoId, leadId])
+  @@index([leadId])
 }
