@@ -125,7 +125,11 @@ export async function getFormularioHubspot(): Promise<FormularioHs> {
 export interface ContextoHs {
   /** cookie hubspotutk (rastreamento) — associa a submissão à navegação */
   hutk?: string;
-  pageUri?: string;
+  /** URL completa da página onde o formulário foi enviado.
+   *  Vira `hs_url` / `hs_url_domain` na submissão — usado por workflows
+   *  que filtram por domínio. ATENÇÃO: o campo do hs_context é `pageUrl`
+   *  (não `pageUri`); com o nome errado o domínio NÃO é registrado. */
+  pageUrl?: string;
   pageName?: string;
 }
 
@@ -151,7 +155,9 @@ export async function enviarParaHubspot(
     "hs_context",
     JSON.stringify({
       hutk: contexto.hutk,
-      pageUri: contexto.pageUri,
+      // "pageUrl" (não "pageUri") — é o que a HubSpot lê para preencher
+      // hs_url / hs_url_domain e permitir o filtro por domínio no workflow.
+      pageUrl: contexto.pageUrl,
       pageName: contexto.pageName,
     })
   );

@@ -48,13 +48,17 @@ export default function CadastroHubspotForm({
     [form, valores]
   );
 
-  // utm_* e página de origem, para atribuição na HubSpot.
-  // Preenchido só após a hidratação (useEffect) — o valor inicial precisa
-  // ser idêntico no servidor e no cliente para não quebrar a hidratação.
+  // URL real da página (para o hs_url/hs_url_domain da HubSpot) + utm_*.
+  // Capturado após a hidratação (useEffect), portanto disponível bem antes
+  // de o usuário conseguir enviar. Se por algum motivo não vier, o servidor
+  // aplica um fallback seguro (ver actions.ts).
   const [extras, setExtras] = useState("{}");
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    const out: Record<string, string> = { pageUri: window.location.href };
+    const out: Record<string, string> = {
+      pageUrl: window.location.href, // URL COMPLETA onde o form foi enviado
+      pageName: document.title,
+    };
     for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]) {
       const v = p.get(k);
       if (v) out[k] = v;

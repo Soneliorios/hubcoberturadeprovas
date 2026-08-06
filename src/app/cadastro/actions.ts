@@ -19,6 +19,29 @@ import {
   type ValoresHs,
 } from "@/lib/hubspot-form";
 
+/**
+ * Fallbacks do contexto de página enviado à HubSpot (hs_url / hs_url_domain).
+ * Usados só quando o frontend não fornece a URL e não há HUBSPOT_PAGE_URL.
+ * O domínio aqui deve bater com o filtro do workflow na HubSpot — ajuste
+ * quando o hub ganhar um domínio próprio (ou defina HUBSPOT_PAGE_URL).
+ */
+const SITE_BASE =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+  "https://hubcoberturadeprovas.vercel.app";
+const PAGE_URL_FALLBACK = `${SITE_BASE}/cadastro`;
+const PAGE_NAME_FALLBACK = "Central Cobertura de Provas — Cadastro";
+
+/** Retorna a URL http(s) se for válida; senão, string vazia (para o `||`). */
+function urlValida(u?: string): string {
+  if (!u) return "";
+  try {
+    const parsed = new URL(u);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? u : "";
+  } catch {
+    return "";
+  }
+}
+
 /** Valores ecoados de volta ao formulário quando a validação falha
  *  (o React 19 reseta forms após a action — sem isso o visitante perderia tudo). */
 export interface CadastroValores {
@@ -128,14 +151,26 @@ export async function cadastrarHubspotAction(
     respostas: JSON.stringify(respostas),
   });
 
-  // 2) HubSpot — submissão de formulário (respeita as condicionais). O hutk
-  //    do rastreamento associa a submissão à navegação (atribuição de origem).
+  // 2) HubSpot — submissão de formulário (respeita as condicionais).
+  //    Contexto da página (pageUrl/pageName) faz a HubSpot preencher
+  //    hs_url / hs_url_domain — necessário para workflows que filtram por
+  //    domínio. Prioridade da URL, do mais específico ao fallback:
+  //      1. URL real capturada no frontend (window.location.href);
+  //      2. HUBSPOT_PAGE_URL (env) — para forçar um domínio canônico;
+  //      3. constante segura (última linha de defesa, nunca vazia).
   try {
     const store = await cookies();
+    const pageUrl =
+      urlValida(extras.pageUrl) ||
+      urlValida(process.env.HUBSPOT_PAGE_URL) ||
+      PAGE_URL_FALLBACK;
+    const pageName =
+      process.env.HUBSPOT_PAGE_NAME || extras.pageName || PAGE_NAME_FALLBACK;
+
     await enviarParaHubspot(form, respostas, {
       hutk: store.get("hubspotutk")?.value,
-      pageUri: extras.pageUri,
-      pageName: "Central Cobertura de Provas — Cadastro",
+      pageUrl,
+      pageName,
     });
     await marcarHubspotSincronizado(lead.id);
   } catch (e) {
